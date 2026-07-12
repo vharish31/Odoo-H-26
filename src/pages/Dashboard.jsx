@@ -1,14 +1,40 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Truck, Users, Route, Wrench } from 'lucide-react'
 import Card from '../components/ui/Card.jsx'
 import StatusBadge from '../components/ui/StatusBadge.jsx'
 import Table from '../components/ui/Table.jsx'
 import Button from '../components/ui/Button.jsx'
+import { vehicleAPI } from '../services/api.js'
 import { kpis, trips, maintenance } from '../data/dummyData.js'
 
 const KPI_ICONS = [Truck, Users, Route, Wrench]
 
 export default function Dashboard() {
+  const [vehicleCount, setVehicleCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchVehicleCount()
+  }, [])
+
+  const fetchVehicleCount = async () => {
+    try {
+      const response = await vehicleAPI.getAll()
+      setVehicleCount(response.data.data.count || 0)
+    } catch (err) {
+      console.error('Error fetching vehicle count:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update vehicle KPI with real data
+  const updatedKpis = kpis.map((kpi, i) => {
+    if (i === 0) {
+      return { ...kpi, value: loading ? '...' : vehicleCount }
+    }
+    return kpi
+  })
   const tripColumns = [
     { key: 'id', header: 'Trip ID' },
     { key: 'route', header: 'Route', render: (r) => `${r.origin} → ${r.destination}` },
@@ -33,7 +59,7 @@ export default function Dashboard() {
 
       {/* KPI grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi, i) => {
+        {updatedKpis.map((kpi, i) => {
           const Icon = KPI_ICONS[i]
           const isUp = kpi.trend === 'up'
           return (

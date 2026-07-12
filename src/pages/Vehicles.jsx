@@ -1,14 +1,34 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, MoreHorizontal, Truck } from 'lucide-react'
 import Card from '../components/ui/Card.jsx'
 import Table from '../components/ui/Table.jsx'
 import StatusBadge from '../components/ui/StatusBadge.jsx'
 import Button from '../components/ui/Button.jsx'
 import Modal from '../components/ui/Modal.jsx'
-import { vehicles } from '../data/dummyData.js'
+import { vehicleAPI } from '../services/api.js'
 
 export default function Vehicles() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [vehicles, setVehicles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchVehicles()
+  }, [])
+
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true)
+      const response = await vehicleAPI.getAll()
+      setVehicles(response.data.data.vehicles || [])
+    } catch (err) {
+      setError('Failed to fetch vehicles')
+      console.error('Error fetching vehicles:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const columns = [
     {
@@ -20,16 +40,17 @@ export default function Vehicles() {
             <Truck className="h-4 w-4 text-accent-400" />
           </div>
           <div>
-            <p className="font-medium text-ink-900">{v.name}</p>
-            <p className="text-xs text-ink-400">{v.id}</p>
+            <p className="font-medium text-ink-900">{v.manufacturer} {v.model}</p>
+            <p className="text-xs text-ink-400">{v.registrationNumber}</p>
           </div>
         </div>
       ),
     },
-    { key: 'type', header: 'Type' },
-    { key: 'plate', header: 'Plate No.' },
-    { key: 'driver', header: 'Assigned Driver' },
-    { key: 'mileage', header: 'Mileage', render: (v) => `${v.mileage.toLocaleString()} km` },
+    { key: 'vehicleType', header: 'Type' },
+    { key: 'registrationNumber', header: 'Plate No.' },
+    { key: 'fuelType', header: 'Fuel Type' },
+    { key: 'year', header: 'Year' },
+    { key: 'capacity', header: 'Capacity', render: (v) => `${v.capacity} tons` },
     { key: 'status', header: 'Status', render: (v) => <StatusBadge status={v.status} /> },
     {
       key: 'actions',
@@ -42,6 +63,22 @@ export default function Vehicles() {
       ),
     },
   ]
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-ink-500">Loading vehicles...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-rose-600">{error}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -76,9 +113,12 @@ export default function Vehicles() {
         }
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Vehicle Name" placeholder="e.g. Volvo FH16" />
-          <Field label="Registration Plate" placeholder="e.g. TN 09 AB 4521" />
+          <Field label="Manufacturer" placeholder="e.g. Volvo" />
+          <Field label="Model" placeholder="e.g. FH16" />
+          <Field label="Registration Number" placeholder="e.g. TN 09 AB 4521" />
           <Field label="Vehicle Type" placeholder="Truck / Van / Pickup" />
+          <Field label="Year" placeholder="e.g. 2024" type="number" />
+          <Field label="Capacity (tons)" placeholder="e.g. 10" type="number" />
           <Field label="Fuel Type" placeholder="Diesel / CNG / Electric" />
         </div>
       </Modal>
@@ -86,12 +126,12 @@ export default function Vehicles() {
   )
 }
 
-function Field({ label, placeholder }) {
+function Field({ label, placeholder, type = 'text' }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-ink-700">{label}</span>
       <input
-        type="text"
+        type={type}
         placeholder={placeholder}
         className="h-9 w-full rounded-lg border border-surface-border bg-surface px-3 text-sm placeholder:text-ink-400 focus:border-accent-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-100"
       />
