@@ -55,3 +55,147 @@ export const kpis = [
   { label: 'Trips In Transit', value: '12', delta: '-1 vs yesterday', trend: 'down' },
   { label: 'Monthly Expenses', value: '₹4.82L', delta: '+6.1% vs last month', trend: 'up' },
 ]
+
+// ---------------------------------------------------------------------------
+// Dashboard-specific data
+// ---------------------------------------------------------------------------
+
+export const dashboardKpis = [
+  {
+    key: 'total-vehicles',
+    label: 'Total Vehicles',
+    value: '48',
+    delta: '+4 this quarter',
+    trend: 'up',
+    icon: 'Truck',
+  },
+  {
+    key: 'active-trips',
+    label: 'Active Trips',
+    value: '12',
+    delta: '+3 vs yesterday',
+    trend: 'up',
+    icon: 'Route',
+  },
+  {
+    key: 'available-vehicles',
+    label: 'Available Vehicles',
+    value: '9',
+    delta: '-2 vs yesterday',
+    trend: 'down',
+    icon: 'CircleCheck',
+  },
+  {
+    key: 'drivers',
+    label: 'Drivers',
+    value: '36',
+    delta: '+1 this month',
+    trend: 'up',
+    icon: 'Users',
+  },
+  {
+    key: 'monthly-expense',
+    label: 'Monthly Expense',
+    value: '₹4.82L',
+    delta: '+6.1% vs last month',
+    trend: 'up',
+    icon: 'Wallet',
+  },
+  {
+    key: 'fleet-utilization',
+    label: 'Fleet Utilization',
+    value: '76%',
+    delta: '+4.2% vs last month',
+    trend: 'up',
+    icon: 'Gauge',
+  },
+]
+
+export const fleetUtilizationBreakdown = [
+  { name: 'In Use', value: 76, colorVar: '--chart-inuse' },
+  { name: 'Idle', value: 14, colorVar: '--chart-idle' },
+  { name: 'Maintenance', value: 10, colorVar: '--chart-maint' },
+]
+
+export const monthlyExpenseTrend = [
+  { month: 'Jan', amount: 398000 },
+  { month: 'Feb', amount: 412000 },
+  { month: 'Mar', amount: 375000 },
+  { month: 'Apr', amount: 431000 },
+  { month: 'May', amount: 456000 },
+  { month: 'Jun', amount: 447000 },
+  { month: 'Jul', amount: 482000 },
+]
+
+export const fuelConsumptionTrend = [
+  { month: 'Feb', diesel: 5120, cng: 460 },
+  { month: 'Mar', diesel: 4870, cng: 510 },
+  { month: 'Apr', diesel: 5340, cng: 495 },
+  { month: 'May', diesel: 5580, cng: 540 },
+  { month: 'Jun', diesel: 5205, cng: 575 },
+  { month: 'Jul', diesel: 5460, cng: 610 },
+]
+
+export const recentTrips = trips.slice(0, 5)
+
+export const upcomingMaintenance = maintenance
+  .filter((m) => m.status !== 'completed')
+  .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+
+export const smartAlerts = [
+  {
+    id: 'AL-001',
+    type: 'service-due',
+    severity: 'critical',
+    title: 'Vehicle service overdue',
+    message: 'VH-1048 (Eicher Pro 2049) — Engine Overhaul was due Jun 28, 2026.',
+    time: '2 hours ago',
+  },
+  {
+    id: 'AL-002',
+    type: 'license-expiry',
+    severity: 'warning',
+    title: 'Driver license expiring soon',
+    message: "Suresh Babu's driving license expires in 9 days (Jul 21, 2026).",
+    time: '5 hours ago',
+  },
+  {
+    id: 'AL-003',
+    type: 'fuel-budget',
+    severity: 'warning',
+    title: 'Fuel budget exceeded',
+    message: 'Diesel spend for July is 14% over the ₹4.2L monthly budget.',
+    time: 'Yesterday',
+  },
+  {
+    id: 'AL-004',
+    type: 'service-due',
+    severity: 'info',
+    title: 'Service reminder',
+    message: 'VH-1042 (Freightliner Cascadia) is due for an oil change on Jul 20, 2026.',
+    time: 'Yesterday',
+  },
+  {
+    id: 'AL-005',
+    type: 'license-expiry',
+    severity: 'info',
+    title: 'License renewal window open',
+    message: "Ramesh Chandran's license renewal window opens next week.",
+    time: '2 days ago',
+  },
+]
+
+export const aiFleetInsights = {
+  headline: 'Vehicle TN09AB1234 may require maintenance within 14 days based on mileage.',
+  confidence: 87,
+  vehicle: 'VH-1042',
+  supportingPoints: [
+    'Mileage since last service is 9,340 km, above the 8,000 km service interval.',
+    'Engine load telemetry trending 6% higher than fleet average over 30 days.',
+    'Similar mileage patterns preceded service events in 3 comparable vehicles.',
+  ],
+  secondaryPredictions: [
+    { vehicle: 'VH-1048', message: 'High risk of unplanned downtime — overdue engine overhaul.' },
+    { vehicle: 'VH-1044', message: 'Brake wear pattern suggests re-inspection after current service.' },
+  ],
+}
