@@ -1,0 +1,266 @@
+import React, { useState, useEffect, useMemo } from 'react'
+import { Plus } from 'lucide-react'
+import Card from '../components/ui/Card.jsx'
+import Button from '../components/ui/Button.jsx'
+import { vehicleAPI } from '../services/api.js'
+import SearchInput from '../components/vehicles/SearchInput.jsx'
+import FilterSelect from '../components/vehicles/FilterSelect.jsx'
+import Pagination from '../components/vehicles/Pagination.jsx'
+import VehicleTable from '../components/vehicles/VehicleTable.jsx'
+import VehicleFormModal from '../components/vehicles/VehicleFormModal.jsx'
+import VehicleDetailsModal from '../components/vehicles/VehicleDetailsModal.jsx'
+import ConfirmDialog from '../components/vehicles/ConfirmDialog.jsx'
+import {
+  vehicles as initialVehicles,
+  VEHICLE_TYPES,
+  VEHICLE_STATUSES,
+} from '../data/vehicleManagementData.js'
+
+const PAGE_SIZE = 6
+
+let nextIdCounter = initialVehicles.length + 1
+
+export default function Vehicles() {
+  const [vehicles, setVehicles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Search / filter / pagination state
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+
+  // Modal state
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState(null)
+  const [viewingVehicle, setViewingVehicle] = useState(null)
+  const [deletingVehicle, setDeletingVehicle] = useState(null)
+
+  useEffect(() => {
+    fetchVehicles()
+  }, [])
+
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true)
+      const response = await vehicleAPI.getAll()
+      const apiVehicles = response.data.data.vehicles || []
+      // Transform API vehicles to match UI structure
+      const transformedVehicles = apiVehicles.map((v) => ({
+        id: v.id,
+        vehicleNumber: v.registrationNumber,
+        model: `${v.manufacturer} ${v.model}`,
+        type: v.vehicleType,
+        status: v.status,
+        fuelType: v.fuelType,
+        year: v.year,
+        capacity: v.capacity,
+      }))
+      setVehicles(transformedVehicles.length > 0 ? transformedVehicles : initialVehicles)
+    } catch (err) {
+      setError('Failed to fetch vehicles')
+      console.error('Error fetching vehicles:', err)
+      // Fallback to dummy data if API fails
+      setVehicles(initialVehicles)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return vehicles.filter((v) => {
+      const matchesSearch =
+        !q ||
+        v.vehicleNumber.toLowerCase().includes(q) ||
+        v.model.toLowerCase().includes(q) ||
+        v.id.toLowerCase().includes(q)
+      const matchesType = !typeFilter || v.type === typeFilter
+      const matchesStatus = !statusFilter || v.status === statusFilter
+      return matchesSearch && matchesType && matchesStatus
+    })
+  }, [vehicles, search, typeFilter, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  const updateFilters = (setter) => (value) => {
+    setter(value)
+    setPage(1)
+  }
+
+  const openAddModal = () => {
+    setEditingVehicle(null)
+    setFormOpen(true)
+  }
+
+  const openEditModal = (vehicle) => {
+    setEditingVehicle(vehicle)
+    setFormOpen(true)
+  }
+
+  const handleFormSubmit = async (values) => {
+    try {
+      if (editingVehicle) {
+        // Update via API
+        await vehicleAPI.update(editingVehicle.id, values)
+        setVehicles((prev) =>
+          prev.map((v) => (v.id === editingVehicle.id ? { ...v, ...values } : v))
+        )
+      } else {
+        // Create via API
+        const response = await vehicleAPI.create(values)
+        const newVehicle = {
+          id: response.data.data.vehicle.id,
+          vehicleNumber: response.data.data.vehicle.registrationNumber,
+          model: `${response.data.data.vehicle.manufacturer} ${response.data.data.vehicle.model}`,
+          type: response.data.data.vehicle.vehicleType,
+          status: response.data.data.vehicle.status,
+          fuelType: response.data.data.vehicle.fuelType,
+          year: response.data.data.vehicle.year,
+          capacity: response.data.data.vehicle.capacity,
+        }
+        setVehicles((prev) => [newVehicle, ...prev])
+        setPage(1)
+      }
+      setFormOpen(false)
+      setEditingVehicle(null)
+    } catch (err) {
+      console.error('Error saving vehicle:', err)
+      // Fallback to local state update
+      if (editingVehicle) {
+        setVehicles((prev) =>
+          prev.map((v) => (v.id === editingVehicle.id ? { ...v, ...values } : v))
+        )
+      } else {
+        const id = `VH-${1000 + nextIdCounter++}`
+        setVehicles((prev) => [{ id, ...values }, ...prev])
+        setPage(1)
+      }
+      setFormOpen(false)
+      setEditingVehicle(null)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await vehicleAPI.delete(deletingVehicle.id)
+      setVehicles((prev) => prev.filter((v) => v.id !== deletingVehicle.id))
+    } catch (err) {
+      console.error('Error deleting vehicle:', err)
+      // Fallback to local state update
+      setVehicles((prev) => prev.filter((v) => v.id !== deletingVehicle.id))
+    }
+    setDeletingVehicle(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-ink-500">Loading vehicles...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-rose-600">{error}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink-900">Vehicle Management</h1>
+          <p className="text-sm text-ink-500">
+            {vehicles.length} vehicles registered in your fleet.
+          </p>
+        </div>
+        <Button icon={Plus} onClick={openAddModal}>
+          Add Vehicle
+        </Button>
+      </div>
+
+      <Card padded={false}>
+        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+          <SearchInput
+            value={search}
+            onChange={updateFilters(setSearch)}
+            placeholder="Search by vehicle number, model or ID..."
+            className="sm:w-80"
+          />
+          <FilterSelect
+            label="All Types"
+            value={typeFilter}
+            onChange={updateFilters(setTypeFilter)}
+            options={VEHICLE_TYPES.map((t) => ({ value: t, label: t }))}
+            className="sm:w-44"
+          />
+          <FilterSelect
+            label="All Statuses"
+            value={statusFilter}
+            onChange={updateFilters(setStatusFilter)}
+            options={VEHICLE_STATUSES.map((s) => ({ value: s, label: formatStatus(s) }))}
+            className="sm:w-44"
+          />
+        </div>
+
+        <VehicleTable
+          data={paged}
+          onView={setViewingVehicle}
+          onEdit={openEditModal}
+          onDelete={setDeletingVehicle}
+        />
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
+      </Card>
+
+      <VehicleFormModal
+        open={formOpen}
+        vehicle={editingVehicle}
+        onClose={() => {
+          setFormOpen(false)
+          setEditingVehicle(null)
+        }}
+        onSubmit={handleFormSubmit}
+      />
+
+      <VehicleDetailsModal
+        open={Boolean(viewingVehicle)}
+        vehicle={viewingVehicle}
+        onClose={() => setViewingVehicle(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deletingVehicle)}
+        onClose={() => setDeletingVehicle(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Vehicle"
+        description={
+          deletingVehicle
+            ? `Remove ${deletingVehicle.vehicleNumber} (${deletingVehicle.model}) from the fleet? This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+      />
+    </div>
+  )
+}
+
+function formatStatus(status) {
+  return status
+    .split('-')
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ')
+}
