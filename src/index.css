@@ -2,15 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --chart-inuse: #0EA5E9;
-  --chart-idle: #94A3B8;
-  --chart-maint: #F59E0B;
-  --chart-line: #0284C7;
-  --chart-diesel: #182B47;
-  --chart-cng: #3AB8F8;
-}
-
 @layer base {
   html {
     @apply antialiased;
