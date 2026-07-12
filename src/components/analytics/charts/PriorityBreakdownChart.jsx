@@ -1,0 +1,65 @@
+import React from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { PRIORITY_STYLES } from '../../../data/analyticsData.js'
+
+function CustomTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const item = payload[0]
+  return (
+    <div className="rounded-lg border border-surface-border bg-surface-card px-3 py-2 text-xs shadow-pop">
+      <p className="font-semibold text-ink-900">{item.name}</p>
+      <p className="text-ink-500">{item.value} service{item.value === 1 ? '' : 's'}</p>
+    </div>
+  )
+}
+
+export default function PriorityBreakdownChart({ data }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+
+  if (!total) {
+    return <div className="flex h-44 items-center justify-center text-sm text-ink-400">No data for this period</div>
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+      <div className="relative h-44 w-44 shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius="70%"
+              outerRadius="100%"
+              paddingAngle={3}
+              stroke="none"
+              startAngle={90}
+              endAngle={-270}
+            >
+              {data.map((entry) => (
+                <Cell key={entry.name} fill={PRIORITY_STYLES[entry.name]?.dot || '#94A3B8'} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold text-ink-900">{total}</span>
+          <span className="text-[11px] text-ink-500">Services</span>
+        </div>
+      </div>
+
+      <div className="flex w-full flex-col gap-2.5">
+        {data.map((entry) => (
+          <div key={entry.name} className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2 text-ink-700 capitalize">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIORITY_STYLES[entry.name]?.dot || '#94A3B8' }} />
+              {entry.name}
+            </div>
+            <span className="font-semibold text-ink-900">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
